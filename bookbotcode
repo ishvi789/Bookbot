@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookbot - Book Recommendations</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background: #f8f9fa;
+      color: #333;
+    }
+    header {
+      background: #4b6cb7;
+      background: linear-gradient(to right, #4b6cb7, #182848);
+      color: #fff;
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 1.5rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    .search-bar {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    .search-bar input {
+      width: 70%;
+      padding: 0.8rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px 0 0 8px;
+      outline: none;
+    }
+    .search-bar button {
+      padding: 0.8rem 1rem;
+      font-size: 1rem;
+      background: #4b6cb7;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      border-radius: 0 8px 8px 0;
+    }
+    .book-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .book-card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 1rem;
+      text-align: center;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+    .book-card:hover {
+      transform: translateY(-5px);
+    }
+    .book-card img {
+      width: 100%;
+      border-radius: 5px;
+      margin-bottom: 0.5rem;
+    }
+    .book-card h3 {
+      font-size: 1rem;
+      margin-bottom: 0.3rem;
+    }
+    .book-card p {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    .modal-content {
+      background: #e6f2ff;
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      border: 2px solid #4b6cb7;
+    }
+    .modal-content h2 {
+      color: #182848;
+      margin-bottom: 1rem;
+    }
+    .modal-content p {
+      margin-bottom: 0.8rem;
+      color: #333;
+    }
+    .modal-close {
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: #4b6cb7;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .modal-close:hover {
+      background: #3a5a9f;
+    }
+  </style>
+</head>
+<body>
+  <header>📚 Bookbot - Find Your Next Read</header>
+  <div class="container">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search for books or authors...">
+      <button onclick="searchBooks()">Search</button>
+    </div>
+    <div id="bookList" class="book-list"></div>
+  </div>
+
+  <div id="modal" class="modal">
+    <div class="modal-content" id="modalContent"></div>
+    <button class="modal-close" onclick="closeModal()">Close</button>
+  </div>
+
+  <script>
+    const books = [
+      {
+        title: "To Kill a Mockingbird",
+        author: "Harper Lee",
+        summary: "A powerful story of racial injustice in the Deep South, seen through the eyes of young Scout Finch.",
+        price: "$10.99",
+        img: "https://covers.openlibrary.org/b/id/8228691-L.jpg"
+      },
+      {
+        title: "The Fault in Our Stars",
+        author: "John Green",
+        summary: "A heart-wrenching tale of love between two teenagers with cancer, highlighting the beauty and tragedy of life.",
+        price: "$12.50",
+        img: "https://covers.openlibrary.org/b/id/7275460-L.jpg"
+      },
+      {
+        title: "Wonder",
+        author: "R.J. Palacio",
+        summary: "The uplifting story of August Pullman, a boy with a facial difference, navigating school and teaching kindness.",
+        price: "$9.95",
+        img: "https://covers.openlibrary.org/b/id/7269873-L.jpg"
+      },
+      {
+        title: "A Man Called Ove",
+        author: "Fredrik Backman",
+        summary: "A grumpy yet lovable old man finds unexpected friendship and a new lease on life.",
+        price: "$11.99",
+        img: "https://covers.openlibrary.org/b/id/8378691-L.jpg"
+      },
+      {
+        title: "Eleanor Oliphant Is Completely Fine",
+        author: "Gail Honeyman",
+        summary: "A quirky woman's journey from loneliness and trauma to friendship and healing.",
+        price: "$13.25",
+        img: "https://covers.openlibrary.org/b/id/8379576-L.jpg"
+      },
+      {
+        title: "The Alchemist",
+        author: "Paulo Coelho",
+        summary: "A philosophical story about following your dreams and listening to your heart as you seek your own legend.",
+        price: "$14.00",
+        img: "https://covers.openlibrary.org/b/id/8275246-L.jpg"
+      },
+      {
+        title: "Atomic Habits",
+        author: "James Clear",
+        summary: "An insightful guide to building better habits and breaking bad ones using small, consistent changes.",
+        price: "$15.50",
+        img: "https://covers.openlibrary.org/b/id/9251236-L.jpg"
+      },
+      {
+        title: "Educated",
+        author: "Tara Westover",
+        summary: "A memoir of a girl born into a survivalist family who escapes to learn about the world through education.",
+        price: "$16.99",
+        img: "https://covers.openlibrary.org/b/id/9251244-L.jpg"
+      },
+      {
+        title: "The Book Thief",
+        author: "Markus Zusak",
+        summary: "A moving story set in Nazi Germany, narrated by Death, about a girl who finds solace in stealing books.",
+        price: "$13.99",
+        img: "https://covers.openlibrary.org/b/id/8221471-L.jpg"
+      },
+      {
+        title: "The Subtle Art of Not Giving a F*ck",
+        author: "Mark Manson",
+        summary: "A brutally honest self-help book that argues happiness comes from embracing life's struggles, not avoiding them.",
+        price: "$12.75",
+        img: "https://covers.openlibrary.org/b/id/9251239-L.jpg"
+      },
+      // Biographies & Memoirs
+      {
+        title: "The Diary of a Young Girl",
+        author: "Anne Frank",
+        summary: "The poignant diary of a Jewish girl hiding from the Nazis during WWII, offering a powerful perspective on hope and humanity.",
+        price: "$8.99",
+        img: "https://covers.openlibrary.org/b/id/8267130-L.jpg"
+      },
+      {
+        title: "Long Walk to Freedom",
+        author: "Nelson Mandela",
+        summary: "The autobiography of South Africa's first black president, chronicling his fight against apartheid and 27 years in prison.",
+        price: "$14.99",
+        img: "https://covers.openlibrary.org/b/id/8406784-L.jpg"
+      },
+      {
+        title: "Steve Jobs",
+        author: "Walter Isaacson",
+        summary: "The authorized biography of Apple's visionary co-founder, based on interviews with Jobs and those who knew him best.",
+        price: "$16.50",
+        img: "https://covers.openlibrary.org/b/id/8406785-L.jpg"
+      },
+      {
+        title: "Becoming",
+        author: "Michelle Obama",
+        summary: "An intimate memoir by the former First Lady, sharing her journey from Chicago's South Side to the White House.",
+        price: "$15.99",
+        img: "https://covers.openlibrary.org/b/id/8406786-L.jpg"
+      },
+      {
+        title: "The Wright Brothers",
+        author: "David McCullough",
+        summary: "The story of how two bicycle mechanics from Ohio achieved the first powered, sustained airplane flight.",
+        price: "$13.75",
+        img: "https://covers.openlibrary.org/b/id/8406787-L.jpg"
+      },
+      {
+        title: "Einstein: His Life and Universe",
+        author: "Walter Isaacson",
+        summary: "A comprehensive biography exploring how Einstein's mind worked and how his scientific imagination transformed our understanding of space and time.",
+        price: "$15.25",
+        img: "https://covers.openlibrary.org/b/id/8406788-L.jpg"
+      },
+      {
+        title: "Leonardo da Vinci",
+        author: "Walter Isaacson",
+        summary: "A biography of the Renaissance genius that connects his art to his science and shows how his creativity was based on skills we can improve in ourselves.",
+        price: "$18.50",
+        img: "https://covers.openlibrary.org/b/id/8406789-L.jpg"
+      },
+      {
+        title: "Alexander Hamilton",
+        author: "Ron Chernow",
+        summary: "The biography that inspired the hit musical, chronicling the life of America's most misunderstood founding father.",
+        price: "$17.99",
+        img: "https://covers.openlibrary.org/b/id/8406790-L.jpg"
+      },
+      {
+        title: "Open",
+        author: "Andre Agassi",
+        summary: "A candid autobiography of the tennis champion, revealing his struggles with fame, relationships, and self-identity.",
+        price: "$14.50",
+        img: "https://covers.openlibrary.org/b/id/8406791-L.jpg"
+      },
+      // Dystopian Fiction
+      {
+        title: "1984",
+        author: "George Orwell",
+        summary: "A dystopian novel about totalitarianism, surveillance, and thought control in a futuristic society.",
+        price: "$9.99",
+        img: "https://covers.openlibrary.org/b/id/7222246-L.jpg"
+      },
+      {
+        title: "Brave New World",
+        author: "Aldous Huxley",
+        summary: "A dystopian novel about a futuristic society based on science and efficiency where emotions are suppressed.",
+        price: "$10.99",
+        img: "https://covers.openlibrary.org/b/id/8267133-L.jpg"
+      },
+      {
+        title: "The Handmaid's Tale",
+        author: "Margaret Atwood",
+        summary: "A dystopian novel about a woman's struggles in a totalitarian society where women are subjugated.",
+        price: "$13.25",
+        img: "https://covers.openlibrary.org/b/id/8267134-L.jpg"
+      },
+      {
+        title: "Fahrenheit 451",
+        author: "Ray Bradbury",
+        summary: "A dystopian novel about a future where books are banned and 'firemen' burn any that are found.",
+        price: "$11.50",
+        img: "https://covers.openlibrary.org/b/id/8406792-L.jpg"
+      },
+      {
+        title: "The Hunger Games",
+        author: "Suzanne Collins",
+        summary: "A dystopian novel about a televised fight to the death in a post-apocalyptic nation.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8267131-L.jpg"
+      },
+      {
+        title: "Divergent",
+        author: "Veronica Roth",
+        summary: "A dystopian novel about a society divided into factions and a girl who doesn't fit into any single group.",
+        price: "$12.50",
+        img: "https://covers.openlibrary.org/b/id/8406793-L.jpg"
+      },
+      {
+        title: "The Maze Runner",
+        author: "James Dashner",
+        summary: "A dystopian novel about teens trapped in a mysterious maze with no memory of how they got there.",
+        price: "$11.99",
+        img: "https://covers.openlibrary.org/b/id/8406794-L.jpg"
+      },
+      {
+        title: "Station Eleven",
+        author: "Emily St. John Mandel",
+        summary: "A post-apocalyptic novel about a traveling theater troupe in a world devastated by a flu pandemic.",
+        price: "$13.75",
+        img: "https://covers.openlibrary.org/b/id/8406795-L.jpg"
+      },
+      {
+        title: "The Road",
+        author: "Cormac McCarthy",
+        summary: "A post-apocalyptic novel about a father and son's journey through a devastated America.",
+        price: "$12.25",
+        img: "https://covers.openlibrary.org/b/id/8406796-L.jpg"
+      },
+      {
+        title: "Legend",
+        author: "Marie Lu",
+        summary: "A dystopian novel about a prodigy wanted by the government and the criminal she's forced to hunt.",
+        price: "$11.50",
+        img: "https://covers.openlibrary.org/b/id/8406797-L.jpg"
+      },
+      // Fantasy
+      {
+        title: "Harry Potter Series",
+        author: "J.K. Rowling",
+        summary: "The magical adventures of a young wizard and his friends at Hogwarts School of Witchcraft and Wizardry.",
+        price: "$59.99",
+        img: "https://covers.openlibrary.org/b/id/8406798-L.jpg"
+      },
+      {
+        title: "The Hobbit",
+        author: "J.R.R. Tolkien",
+        summary: "A fantasy adventure about Bilbo Baggins, who is swept into an epic quest to reclaim a dwarf kingdom.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406781-L.jpg"
+      },
+      {
+        title: "The Lord of the Rings",
+        author: "J.R.R. Tolkien",
+        summary: "An epic fantasy trilogy about the quest to destroy the One Ring and defeat the Dark Lord Sauron.",
+        price: "$29.99",
+        img: "https://covers.openlibrary.org/b/id/8406782-L.jpg"
+      },
+      {
+        title: "A Song of Ice and Fire Series",
+        author: "George R.R. Martin",
+        summary: "An epic fantasy series of political intrigue, war, and dragons in the Seven Kingdoms of Westeros.",
+        price: "$49.99",
+        img: "https://covers.openlibrary.org/b/id/8406799-L.jpg"
+      },
+      {
+        title: "Mistborn Trilogy",
+        author: "Brandon Sanderson",
+        summary: "A fantasy series about a world where certain people can ingest and 'burn' metals to gain magical powers.",
+        price: "$34.99",
+        img: "https://covers.openlibrary.org/b/id/8406800-L.jpg"
+      },
+      {
+        title: "The Name of the Wind",
+        author: "Patrick Rothfuss",
+        summary: "The first book in the Kingkiller Chronicle, following the legendary adventurer and musician Kvothe.",
+        price: "$15.99",
+        img: "https://covers.openlibrary.org/b/id/8406801-L.jpg"
+      },
+      {
+        title: "Throne of Glass Series",
+        author: "Sarah J. Maas",
+        summary: "A fantasy series about an assassin competing to become the king's champion in a corrupt kingdom.",
+        price: "$39.99",
+        img: "https://covers.openlibrary.org/b/id/8406802-L.jpg"
+      },
+      {
+        title: "Shadow and Bone Trilogy",
+        author: "Leigh Bardugo",
+        summary: "A fantasy series set in the Grishaverse, where a young soldier discovers she has extraordinary powers.",
+        price: "$29.99",
+        img: "https://covers.openlibrary.org/b/id/8406803-L.jpg"
+      },
+      {
+        title: "The Priory of the Orange Tree",
+        author: "Samantha Shannon",
+        summary: "An epic feminist fantasy about a world divided by religion and the dragons that threaten it.",
+        price: "$19.99",
+        img: "https://covers.openlibrary.org/b/id/8406804-L.jpg"
+      },
+      {
+        title: "Earthsea Series",
+        author: "Ursula K. Le Guin",
+        summary: "A classic fantasy series about a young wizard's education and adventures in the archipelago of Earthsea.",
+        price: "$24.99",
+        img: "https://covers.openlibrary.org/b/id/8406805-L.jpg"
+      },
+      // Classic Literature
+      {
+        title: "Pride and Prejudice",
+        author: "Jane Austen",
+        summary: "A romantic novel about the spirited Elizabeth Bennet and the proud Mr. Darcy in Georgian England.",
+        price: "$8.50",
+        img: "https://covers.openlibrary.org/b/id/8267123-L.jpg"
+      },
+      {
+        title: "The Great Gatsby",
+        author: "F. Scott Fitzgerald",
+        summary: "A story of wealth, love, and the American Dream in the Roaring Twenties.",
+        price: "$10.25",
+        img: "https://covers.openlibrary.org/b/id/8267124-L.jpg"
+      },
+      {
+        title: "Little Women",
+        author: "Louisa May Alcott",
+        summary: "A coming-of-age story about the four March sisters growing up during the American Civil War.",
+        price: "$9.75",
+        img: "https://covers.openlibrary.org/b/id/8267126-L.jpg"
+      },
+      {
+        title: "The Kite Runner",
+        author: "Khaled Hosseini",
+        summary: "A powerful story of friendship, betrayal, and redemption set in Afghanistan.",
+        price: "$13.75",
+        img: "https://covers.openlibrary.org/b/id/8267129-L.jpg"
+      },
+      {
+        title: "A Thousand Splendid Suns",
+        author: "Khaled Hosseini",
+        summary: "A heartbreaking story of two women brought together by war and loss in Afghanistan.",
+        price: "$14.25",
+        img: "https://covers.openlibrary.org/b/id/8406806-L.jpg"
+      },
+      {
+        title: "Normal People",
+        author: "Sally Rooney",
+        summary: "A novel about the complex relationship between two Irish teenagers from different social backgrounds.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406807-L.jpg"
+      },
+      {
+        title: "Where the Crawdads Sing",
+        author: "Delia Owens",
+        summary: "A murder mystery and coming-of-age story about a girl who raises herself in the marshes of North Carolina.",
+        price: "$15.50",
+        img: "https://covers.openlibrary.org/b/id/8406808-L.jpg"
+      },
+      {
+        title: "The Night Circus",
+        author: "Erin Morgenstern",
+        summary: "A magical love story set in a mysterious circus that appears without warning and is only open at night.",
+        price: "$13.99",
+        img: "https://covers.openlibrary.org/b/id/8406809-L.jpg"
+      },
+      {
+        title: "All the Light We Cannot See",
+        author: "Anthony Doerr",
+        summary: "A Pulitzer Prize-winning novel about a blind French girl and a German boy whose paths collide in occupied France during WWII.",
+        price: "$14.99",
+        img: "https://covers.openlibrary.org/b/id/8406810-L.jpg"
+      },
+      {
+        title: "Wolf Hall",
+        author: "Hilary Mantel",
+        summary: "A historical novel about Thomas Cromwell's rise to power in the court of Henry VIII.",
+        price: "$16.50",
+        img: "https://covers.openlibrary.org/b/id/8406811-L.jpg"
+      },
+      // Historical Fiction
+      {
+        title: "The Tattooist of Auschwitz",
+        author: "Heather Morris",
+        summary: "Based on a true story of a Slovakian Jew who becomes the tattooist at Auschwitz and falls in love.",
+        price: "$14.25",
+        img: "https://covers.openlibrary.org/b/id/8406812-L.jpg"
+      },
+      {
+        title: "Beneath a Scarlet Sky",
+        author: "Mark Sullivan",
+        summary: "A novel based on the true story of an Italian teenager who helped Jews escape during WWII.",
+        price: "$15.99",
+        img: "https://covers.openlibrary.org/b/id/8406813-L.jpg"
+      },
+      {
+        title: "The Nightingale",
+        author: "Kristin Hannah",
+        summary: "A story of two sisters in France during WWII and their struggle to survive and resist the German occupation.",
+        price: "$14.50",
+        img: "https://covers.openlibrary.org/b/id/8406814-L.jpg"
+      },
+      {
+        title: "The Paris Library",
+        author: "Janet Skeslien Charles",
+        summary: "Based on the true story of the librarians at the American Library in Paris during WWII.",
+        price: "$13.99",
+        img: "https://covers.openlibrary.org/b/id/8406815-L.jpg"
+      },
+      {
+        title: "Homegoing",
+        author: "Yaa Gyasi",
+        summary: "A novel tracing the descendants of two half-sisters from 18th century Ghana to modern day America.",
+        price: "$15.25",
+        img: "https://covers.openlibrary.org/b/id/8406816-L.jpg"
+      },
+      {
+        title: "The Pillars of the Earth",
+        author: "Ken Follett",
+        summary: "An epic historical novel about the building of a cathedral in 12th century England.",
+        price: "$17.99",
+        img: "https://covers.openlibrary.org/b/id/8406817-L.jpg"
+      },
+      {
+        title: "Before We Were Yours",
+        author: "Lisa Wingate",
+        summary: "Based on a true scandal about poor children being kidnapped and sold to wealthy families.",
+        price: "$14.75",
+        img: "https://covers.openlibrary.org/b/id/8406818-L.jpg"
+      },
+      // Horror
+      {
+        title: "It",
+        author: "Stephen King",
+        summary: "A horror novel about seven adults who return to their hometown to confront a nightmare they first faced as teenagers.",
+        price: "$16.99",
+        img: "https://covers.openlibrary.org/b/id/8406819-L.jpg"
+      },
+      {
+        title: "The Shining",
+        author: "Stephen King",
+        summary: "A psychological horror novel about a writer who becomes the winter caretaker of an isolated hotel.",
+        price: "$13.50",
+        img: "https://covers.openlibrary.org/b/id/8406820-L.jpg"
+      },
+      {
+        title: "Mexican Gothic",
+        author: "Silvia Moreno-Garcia",
+        summary: "A chilling horror novel about a socialite investigating her cousin's claims that her husband is trying to murder her.",
+        price: "$14.99",
+        img: "https://covers.openlibrary.org/b/id/8406821-L.jpg"
+      },
+      {
+        title: "Bird Box",
+        author: "Josh Malerman",
+        summary: "A post-apocalyptic horror novel about a mother trying to survive in a world where looking outside can drive you mad.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406822-L.jpg"
+      },
+      {
+        title: "The Haunting of Hill House",
+        author: "Shirley Jackson",
+        summary: "A classic horror novel about four people who stay in a notoriously haunted house to investigate supernatural phenomena.",
+        price: "$10.50",
+        img: "https://covers.openlibrary.org/b/id/8406823-L.jpg"
+      },
+      {
+        title: "Pet Sematary",
+        author: "Stephen King",
+        summary: "A horror novel about a family that discovers a mysterious burial ground with terrifying powers.",
+        price: "$13.25",
+        img: "https://covers.openlibrary.org/b/id/8406824-L.jpg"
+      },
+      {
+        title: "Hell House",
+        author: "Richard Matheson",
+        summary: "A horror novel about a team investigating the most haunted house in the world.",
+        price: "$11.99",
+        img: "https://covers.openlibrary.org/b/id/8406825-L.jpg"
+      },
+      {
+        title: "The Exorcist",
+        author: "William Peter Blatty",
+        summary: "A horror novel about the demonic possession of a 12-year-old girl and her mother's desperate attempts to save her.",
+        price: "$12.50",
+        img: "https://covers.openlibrary.org/b/id/8406826-L.jpg"
+      },
+      {
+        title: "House of Leaves",
+        author: "Mark Z. Danielewski",
+        summary: "An experimental horror novel about a family that discovers their house is bigger on the inside than the outside.",
+        price: "$18.99",
+        img: "https://covers.openlibrary.org/b/id/8406827-L.jpg"
+      },
+      {
+        title: "Coraline",
+        author: "Neil Gaiman",
+        summary: "A dark fantasy horror novella about a girl who discovers a parallel world with sinister versions of her parents.",
+        price: "$9.99",
+        img: "https://covers.openlibrary.org/b/id/8406828-L.jpg"
+      },
+      // Children's Books
+      {
+        title: "Charlotte's Web",
+        author: "E.B. White",
+        summary: "A children's novel about the friendship between a pig named Wilbur and a barn spider named Charlotte.",
+        price: "$7.99",
+        img: "https://covers.openlibrary.org/b/id/8406829-L.jpg"
+      },
+      {
+        title: "Matilda",
+        author: "Roald Dahl",
+        summary: "A children's novel about an extraordinary girl with a love of books and telekinetic powers.",
+        price: "$8.50",
+        img: "https://covers.openlibrary.org/b/id/8406830-L.jpg"
+      },
+      {
+        title: "The Very Hungry Caterpillar",
+        author: "Eric Carle",
+        summary: "A children's picture book about a caterpillar's journey to becoming a butterfly.",
+        price: "$6.99",
+        img: "https://covers.openlibrary.org/b/id/8406831-L.jpg"
+      },
+      {
+        title: "Winnie-the-Pooh",
+        author: "A.A. Milne",
+        summary: "A collection of stories about the adventures of a teddy bear named Winnie-the-Pooh and his friends.",
+        price: "$9.25",
+        img: "https://covers.openlibrary.org/b/id/8406832-L.jpg"
+      },
+      {
+        title: "Percy Jackson Series",
+        author: "Rick Riordan",
+        summary: "A fantasy adventure series about a boy who discovers he's a demigod, the son of Poseidon.",
+        price: "$39.99",
+        img: "https://covers.openlibrary.org/b/id/8406833-L.jpg"
+      },
+      {
+        title: "Diary of a Wimpy Kid",
+        author: "Jeff Kinney",
+        summary: "A humorous fictional diary of a middle school student navigating the challenges of adolescence.",
+        price: "$8.99",
+        img: "https://covers.openlibrary.org/b/id/8406834-L.jpg"
+      },
+      {
+        title: "The Tale of Peter Rabbit",
+        author: "Beatrix Potter",
+        summary: "A children's book about a mischievous rabbit who disobeys his mother and gets into trouble in Mr. McGregor's garden.",
+        price: "$5.99",
+        img: "https://covers.openlibrary.org/b/id/8406835-L.jpg"
+      },
+      {
+        title: "Goodnight Moon",
+        author: "Margaret Wise Brown",
+        summary: "A classic children's bedtime story with rhythmic text and soothing illustrations.",
+        price: "$6.50",
+        img: "https://covers.openlibrary.org/b/id/8406836-L.jpg"
+      },
+      {
+        title: "The Magic Tree House Series",
+        author: "Mary Pope Osborne",
+        summary: "A children's book series about siblings who travel through time and space in a magic tree house.",
+        price: "$49.99",
+        img: "https://covers.openlibrary.org/b/id/8406837-L.jpg"
+      },
+      // Additional Memoirs
+      {
+        title: "When Breath Becomes Air",
+        author: "Paul Kalanithi",
+        summary: "A neurosurgeon's memoir about facing mortality after being diagnosed with terminal lung cancer.",
+        price: "$14.99",
+        img: "https://covers.openlibrary.org/b/id/8406838-L.jpg"
+      },
+      {
+        title: "I Am Malala",
+        author: "Malala Yousafzai",
+        summary: "The memoir of the youngest Nobel Prize laureate, who stood up for girls' education and was shot by the Taliban.",
+        price: "$13.50",
+        img: "https://covers.openlibrary.org/b/id/8406839-L.jpg"
+      },
+      {
+        title: "Bossypants",
+        author: "Tina Fey",
+        summary: "A humorous memoir by the comedian and writer about her life and career in comedy.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406840-L.jpg"
+      },
+      {
+        title: "The Glass Castle",
+        author: "Jeannette Walls",
+        summary: "A memoir about growing up in a dysfunctional, nomadic family with unconventional parents.",
+        price: "$13.25",
+        img: "https://covers.openlibrary.org/b/id/8406841-L.jpg"
+      },
+      {
+        title: "Born a Crime",
+        author: "Trevor Noah",
+        summary: "The comedian's memoir about growing up biracial in apartheid South Africa.",
+        price: "$15.50",
+        img: "https://covers.openlibrary.org/b/id/8406842-L.jpg"
+      },
+      {
+        title: "Wild",
+        author: "Cheryl Strayed",
+        summary: "A memoir about a woman's solo 1,100-mile hike along the Pacific Crest Trail as she heals from personal tragedy.",
+        price: "$14.25",
+        img: "https://covers.openlibrary.org/b/id/8406843-L.jpg"
+      },
+      {
+        title: "My Life in France",
+        author: "Julia Child",
+        summary: "A memoir about the famous chef's years in Paris where she discovered her passion for French cuisine.",
+        price: "$13.99",
+        img: "https://covers.openlibrary.org/b/id/8406844-L.jpg"
+      },
+      {
+        title: "Finding Me",
+        author: "Viola Davis",
+        summary: "The actress's memoir about her journey from poverty in Rhode Island to becoming an award-winning performer.",
+        price: "$16.99",
+        img: "https://covers.openlibrary.org/b/id/8406845-L.jpg"
+      },
+      // Thrillers & Mysteries
+      {
+        title: "Gone Girl",
+        author: "Gillian Flynn",
+        summary: "A psychological thriller about a woman who disappears on her fifth wedding anniversary.",
+        price: "$14.50",
+        img: "https://covers.openlibrary.org/b/id/8406846-L.jpg"
+      },
+      {
+        title: "The Girl with the Dragon Tattoo",
+        author: "Stieg Larsson",
+        summary: "A mystery thriller about a journalist and a hacker investigating a 40-year-old disappearance.",
+        price: "$13.99",
+        img: "https://covers.openlibrary.org/b/id/8406847-L.jpg"
+      },
+      {
+        title: "Big Little Lies",
+        author: "Liane Moriarty",
+        summary: "A novel about three women whose seemingly perfect lives unravel to the point of murder.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406848-L.jpg"
+      },
+      {
+        title: "The Da Vinci Code",
+        author: "Dan Brown",
+        summary: "A mystery thriller about a symbologist who uncovers a secret protected by a clandestine society.",
+        price: "$13.25",
+        img: "https://covers.openlibrary.org/b/id/8406849-L.jpg"
+      },
+      {
+        title: "Sherlock Holmes Series",
+        author: "Arthur Conan Doyle",
+        summary: "A collection of detective stories featuring the brilliant consulting detective Sherlock Holmes.",
+        price: "$24.99",
+        img: "https://covers.openlibrary.org/b/id/8406850-L.jpg"
+      },
+      {
+        title: "The Silent Patient",
+        author: "Alex Michaelides",
+        summary: "A psychological thriller about a woman who shoots her husband and then stops speaking.",
+        price: "$14.99",
+        img: "https://covers.openlibrary.org/b/id/8406851-L.jpg"
+      },
+      {
+        title: "The Woman in the Window",
+        author: "A.J. Finn",
+        summary: "A thriller about an agoraphobic woman who believes she's witnessed a crime in her neighbor's house.",
+        price: "$13.50",
+        img: "https://covers.openlibrary.org/b/id/8406852-L.jpg"
+      },
+      {
+        title: "In the Woods",
+        author: "Tana French",
+        summary: "A mystery novel about a detective investigating a murder that may be connected to his own childhood trauma.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406853-L.jpg"
+      },
+      {
+        title: "One of Us Is Lying",
+        author: "Karen M. McManus",
+        summary: "A young adult thriller about five students who enter detention but only four leave alive.",
+        price: "$11.99",
+        img: "https://covers.openlibrary.org/b/id/8406854-L.jpg"
+      },
+      {
+        title: "And Then There Were None",
+        author: "Agatha Christie",
+        summary: "A mystery novel about ten strangers lured to an island where they're killed off one by one.",
+        price: "$9.99",
+        img: "https://covers.openlibrary.org/b/id/8406855-L.jpg"
+      },
+      // Psychology & Self-Help
+      {
+        title: "Thinking, Fast and Slow",
+        author: "Daniel Kahneman",
+        summary: "A book about the two systems that drive the way we think—fast, intuitive thinking and slow, logical thinking.",
+        price: "$16.99",
+        img: "https://covers.openlibrary.org/b/id/8406856-L.jpg"
+      },
+      {
+        title: "The Power of Habit",
+        author: "Charles Duhigg",
+        summary: "An exploration of the science behind why habits exist and how they can be changed.",
+        price: "$14.50",
+        img: "https://covers.openlibrary.org/b/id/8406857-L.jpg"
+      },
+      {
+        title: "Man's Search for Meaning",
+        author: "Viktor Frankl",
+        summary: "A psychiatrist's memoir of his experiences in Nazi concentration camps and his psychotherapeutic method.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406858-L.jpg"
+      },
+      {
+        title: "The Psychopath Test",
+        author: "Jon Ronson",
+        summary: "An exploration of psychopathy and the mental health industry's attempts to define and treat it.",
+        price: "$13.25",
+        img: "https://covers.openlibrary.org/b/id/8406859-L.jpg"
+      },
+      {
+        title: "Grit",
+        author: "Angela Duckworth",
+        summary: "A book arguing that passion and perseverance are more important than talent for success.",
+        price: "$15.50",
+        img: "https://covers.openlibrary.org/b/id/8406860-L.jpg"
+      },
+      {
+        title: "Blink",
+        author: "Malcolm Gladwell",
+        summary: "A book about the power of thinking without thinking—our ability to make snap judgments.",
+        price: "$14.25",
+        img: "https://covers.openlibrary.org/b/id/8406861-L.jpg"
+      },
+      {
+        title: "Influence",
+        author: "Robert Cialdini",
+        summary: "A book about the psychology of persuasion and how people are influenced to comply with requests.",
+        price: "$13.99",
+        img: "https://covers.openlibrary.org/b/id/8406862-L.jpg"
+      },
+      {
+        title: "The Happiness Hypothesis",
+        author: "Jonathan Haidt",
+        summary: "A book examining ancient wisdom through the lens of modern psychology to find the path to happiness.",
+        price: "$14.99",
+        img: "https://covers.openlibrary.org/b/id/8406863-L.jpg"
+      },
+      {
+        title: "Quiet",
+        author: "Susan Cain",
+        summary: "A book about the power of introverts in a world that can't stop talking.",
+        price: "$13.50",
+        img: "https://covers.openlibrary.org/b/id/8406864-L.jpg"
+      },
+      // Science Fiction
+      {
+        title: "Dune",
+        author: "Frank Herbert",
+        summary: "A science fiction novel about the son of a noble family entrusted with protecting the most valuable asset in the galaxy.",
+        price: "$15.99",
+        img: "https://covers.openlibrary.org/b/id/8406865-L.jpg"
+      },
+      {
+        title: "Ender's Game",
+        author: "Orson Scott Card",
+        summary: "A military science fiction novel about child geniuses being trained to fight an alien race.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406866-L.jpg"
+      },
+      {
+        title: "The Martian",
+        author: "Andy Weir",
+        summary: "A science fiction novel about an astronaut stranded on Mars who must find a way to survive.",
+        price: "$13.50",
+        img: "https://covers.openlibrary.org/b/id/8406867-L.jpg"
+      },
+      {
+        title: "Neuromancer",
+        author: "William Gibson",
+        summary: "A cyberpunk novel that coined the term 'cyberspace' and envisioned the internet before it existed.",
+        price: "$11.99",
+        img: "https://covers.openlibrary.org/b/id/8406868-L.jpg"
+      },
+      {
+        title: "Snow Crash",
+        author: "Neal Stephenson",
+        summary: "A cyberpunk novel about a futuristic America where the government has mostly been replaced by corporations.",
+        price: "$14.25",
+        img: "https://covers.openlibrary.org/b/id/8406869-L.jpg"
+      },
+      {
+        title: "Ready Player One",
+        author: "Ernest Cline",
+        summary: "A science fiction novel set in a dystopian future where people escape reality in a virtual world.",
+        price: "$13.99",
+        img: "https://covers.openlibrary.org/b/id/8406870-L.jpg"
+      },
+      {
+        title: "Foundation Series",
+        author: "Isaac Asimov",
+        summary: "A science fiction series about a mathematician who predicts the fall of a galactic empire and creates a plan to shorten the coming dark age.",
+        price: "$34.99",
+        img: "https://covers.openlibrary.org/b/id/8406871-L.jpg"
+      },
+      {
+        title: "Hyperion",
+        author: "Dan Simmons",
+        summary: "A science fiction novel about seven pilgrims traveling to the Time Tombs on the planet Hyperion.",
+        price: "$14.50",
+        img: "https://covers.openlibrary.org/b/id/8406872-L.jpg"
+      },
+      {
+        title: "Children of Time",
+        author: "Adrian Tchaikovsky",
+        summary: "A science fiction novel about the last humans searching for a new home and the intelligent spiders evolving on another planet.",
+        price: "$15.99",
+        img: "https://covers.openlibrary.org/b/id/8406873-L.jpg"
+      },
+      {
+        title: "The Left Hand of Darkness",
+        author: "Ursula K. Le Guin",
+        summary: "A science fiction novel about a human envoy to an alien planet where the inhabitants can change gender.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406874-L.jpg"
+      },
+      // Short Story Collections
+      {
+        title: "Interpreter of Maladies",
+        author: "Jhumpa Lahiri",
+        summary: "A collection of short stories about Indian and Indian-American characters navigating love and cultural differences.",
+        price: "$11.99",
+        img: "https://covers.openlibrary.org/b/id/8406875-L.jpg"
+      },
+      {
+        title: "Tenth of December",
+        author: "George Saunders",
+        summary: "A collection of short stories that blend humor and pathos to explore themes of class, power, and justice.",
+        price: "$12.50",
+        img: "https://covers.openlibrary.org/b/id/8406876-L.jpg"
+      },
+      {
+        title: "Dubliners",
+        author: "James Joyce",
+        summary: "A collection of short stories that form a naturalistic depiction of Irish middle-class life in the early 20th century.",
+        price: "$9.99",
+        img: "https://covers.openlibrary.org/b/id/8406877-L.jpg"
+      },
+      {
+        title: "Men Without Women",
+        author: "Haruki Murakami",
+        summary: "A collection of short stories about lonely men who have lost women in their lives.",
+        price: "$13.25",
+        img: "https://covers.openlibrary.org/b/id/8406878-L.jpg"
+      },
+      {
+        title: "The Complete Short Stories of Ernest Hemingway",
+        author: "Ernest Hemingway",
+        summary: "A collection of Hemingway's short stories showcasing his distinctive style and themes.",
+        price: "$16.99",
+        img: "https://covers.openlibrary.org/b/id/8406879-L.jpg"
+      },
+      {
+        title: "Everything's Eventual",
+        author: "Stephen King",
+        summary: "A collection of 14 dark tales that showcase King's signature blend of suspense and the supernatural.",
+        price: "$14.50",
+        img: "https://covers.openlibrary.org/b/id/8406880-L.jpg"
+      },
+      {
+        title: "Stories of Your Life and Others",
+        author: "Ted Chiang",
+        summary: "A collection of science fiction stories including the one that inspired the film 'Arrival'.",
+        price: "$13.99",
+        img: "https://covers.openlibrary.org/b/id/8406881-L.jpg"
+      },
+      {
+        title: "A Good Man Is Hard to Find",
+        author: "Flannery O'Connor",
+        summary: "A collection of short stories that blend Southern Gothic with dark humor and religious themes.",
+        price: "$10.99",
+        img: "https://covers.openlibrary.org/b/id/8406882-L.jpg"
+      },
+      {
+        title: "The Lottery",
+        author: "Shirley Jackson",
+        summary: "A collection of short stories including the famous title story about a small town's chilling annual ritual.",
+        price: "$9.99",
+        img: "https://covers.openlibrary.org/b/id/8406883-L.jpg"
+      },
+      {
+        title: "Nine Stories",
+        author: "J.D. Salinger",
+        summary: "A collection of short stories that showcase Salinger's unique voice and themes of alienation and innocence.",
+        price: "$11.50",
+        img: "https://covers.openlibrary.org/b/id/8406884-L.jpg"
+      },
+      // Young Adult
+      {
+        title: "Eleanor & Park",
+        author: "Rainbow Rowell",
+        summary: "A young adult novel about two misfit teenagers who fall in love over mix tapes and comic books in 1986.",
+        price: "$12.99",
+        img: "https://covers.openlibrary.org/b/id/8406885-L.jpg"
+      },
+      {
+        title: "Looking for Alaska",
+        author: "John Green",
+        summary: "A young adult novel about a teenager who attends boarding school and becomes obsessed with a mysterious girl.",
+        price: "$11.99",
+        img: "https://covers.openlibrary.org/b/id/8406886-L.jpg"
+      },
+      {
+        title: "Six of Crows",
+        author: "Leigh Bardugo",
+        summary: "A young adult fantasy heist novel about a gang of criminals attempting an impossible theft.",
+        price: "$14.50",
+        img: "https://covers.openlibrary.org/b/id/8406887-L.jpg"
+      },
+      {
+        title: "A Court of Thorns and Roses",
+        author: "Sarah J. Maas",
+        summary: "A young adult fantasy novel about a huntress who is taken to a magical kingdom for killing a faerie.",
+        price: "$13.99",
+        img: "https://covers.openlibrary.org/b/id/8406888-L.jpg"
+      },
+      {
+        title: "They Both Die at the End",
+        author: "Adam Silvera",
+        summary: "A young adult novel about two boys who meet on the day they're told they're going to die.",
+        price: "$12.50",
+        img: "https://covers.openlibrary.org/b/id/8406889-L.jpg"
+      },
+      {
+        title: "Red Queen",
+        author: "Victoria Aveyard",
+        summary: "A young adult fantasy novel about a world divided by blood—red or silver—where a girl with red blood discovers she has silver abilities.",
+        price: "$13.25",
+        img: "https://covers.openlibrary.org/b/id/8406890-L.jpg"
+      },
+      {
+        title: "The Selection",
+        author: "Kiera Cass",
+        summary: "A young adult dystopian romance about a competition to win the prince's heart in a caste-divided society.",
+        price: "$11.99",
+        img: "https://covers.openlibrary.org/b/id/8406891-L.jpg"
+      }
+    ];
+
+    function displayBooks(filteredBooks) {
+      const bookList = document.getElementById("bookList");
+      bookList.innerHTML = "";
+      filteredBooks.forEach(book => {
+        const card = document.createElement("div");
+        card.className = "book-card";
+        card.innerHTML = `
+          <img src="${book.img}" alt="${book.title}">
+          <h3>${book.title}</h3>
+          <p><strong>${book.author}</strong></p>
+          <p>${book.price}</p>
+        `;
+        card.onclick = () => openModal(book);
+        bookList.appendChild(card);
+      });
+    }
+
+    function searchBooks() {
+      const query = document.getElementById("searchInput").value.toLowerCase();
+      const filtered = books.filter(book => 
+        book.title.toLowerCase().includes(query) || book.author.toLowerCase().includes(query)
+      );
+      displayBooks(filtered);
+    }
+
+    function openModal(book) {
+      const modal = document.getElementById("modal");
+      const content = document.getElementById("modalContent");
+      content.innerHTML = `
+        <h2>${book.title}</h2>
+        <p><strong>Author:</strong> ${book.author}</p>
+        <p><strong>Price:</strong> ${book.price}</p>
+        <p>${book.summary}</p>
+      `;
+      modal.style.display = "flex";
+    }
+
+    function closeModal() {
+      document.getElementById("modal").style.display = "none";
+    }
+
+    // Display all books initially
+    displayBooks(books);
+  </script>
+
+  <!-- Watson Assistant Chat Widget -->
+  <script>
+    window.watsonAssistantChatOptions = {
+      integrationID: "4bdf7d43-8f20-407d-98da-f2f489053c8f",
+      region: "us-south",
+      serviceInstanceID: "f8b2d217-fe3d-4e5c-aa6a-98cb917ad1d3",
+      onLoad: async (instance) => { await instance.render(); }
+    };
+    setTimeout(function(){
+      const t=document.createElement('script');
+      t.src="https://web-chat.global.assistant.watson.appdomain.cloud/versions/" + 
+        (window.watsonAssistantChatOptions.clientVersion || 'latest') + "/WatsonAssistantChatEntry.js";
+      document.head.appendChild(t);
+    });
+  </script>
+</body>
+</html>
